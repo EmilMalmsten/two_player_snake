@@ -12,20 +12,38 @@ class Snake:
         self._start_x = start_x
         self._start_y = start_y
         self._color = color
-        self._coordinates = []
-        self._circles = []
-        self._ready = False
-        self._direction = direction
+        self._start_direction = direction
+        self.direction = direction
+        self.coordinates = []
+        self.circles = []
+        self.ready = False
         self.crashed = False
         self.insert_head(start_x, start_y)
 
     def insert_head(self, x, y):
-        self._coordinates.insert(0, (x, y))
-        circle = canvas.create_oval(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=self._color, outline="black", tag="snake_body")
-        self._circles.append(circle)
+        self.coordinates.insert(0, (x, y))
+        circle = canvas.create_oval(
+                x,
+                y,
+                x + SPACE_SIZE,
+                y + SPACE_SIZE,
+                fill=self._color,
+                outline="black",
+                tag="snake_body"
+                )
+        self.circles.append(circle)
+
+    def reset_state(self):
+        self.coordinates = []
+        self.circles = []
+        self.ready = False
+        self.crashed = False
+        self.direction = self._start_direction
+        self.insert_head(self._start_x, self._start_y)
+
 
 def countdown(count):
-    canvas.itemconfig("countdown_text",  text=f"{count}")
+    canvas.itemconfig("countdown_text", text=f"{count}")
 
     if count > 0:
         window.after(1000, countdown, count-1)
@@ -34,10 +52,10 @@ def countdown(count):
         next_turn(snakes)
 
 def ready(snake, tag):
-    snake._ready = True
+    snake.ready = True
     canvas.delete(tag)
     
-    if all(snake._ready == True for snake in snakes):
+    if all(snake.ready == True for snake in snakes):
         countdown_text = canvas.create_text(
                 350, 350, 
                 text="",
@@ -48,7 +66,7 @@ def ready(snake, tag):
 
 def next_turn(snakes):
 
-    if snakes[0]._ready == False or snakes[1]._ready == False:
+    if snakes[0].ready == False or snakes[1].ready == False:
 
         canvas.create_text(
                 SPACE_SIZE * 5, SPACE_SIZE * 3, 
@@ -82,25 +100,27 @@ def next_turn(snakes):
         window.bind("<Down>", lambda event: change_direction(snakes[1], "down"))
         window.bind("<Left>", lambda event: change_direction(snakes[1], "left"))
 
+        # add new head to snake in current direction
         for snake in snakes:
-            x, y = snake._coordinates[0]
+            x, y = snake.coordinates[0]
 
-            if snake._direction == "up": 
+            if snake.direction == "up": 
                 y -= SPACE_SIZE
-            elif snake._direction == "right":
+            elif snake.direction == "right":
                 x += SPACE_SIZE
-            elif snake._direction == "down":
+            elif snake.direction == "down":
                 y += SPACE_SIZE
-            elif snake._direction == "left":
+            elif snake.direction == "left":
                 x -= SPACE_SIZE
 
-            snake._coordinates.insert(0, (x,y))
+            snake.coordinates.insert(0, (x,y))
             circle = canvas.create_oval(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=snake._color, outline="black", tag="snake_body")
-            snake._circles.insert(0, circle)
+            snake.circles.insert(0, circle)
 
             if check_collisions(snake):
                 snake.crashed = True
 
+        # both snakes crashed at the same time (tie)
         if snakes[0].crashed and snakes[1].crashed:
             game_over(snakes)
             window.after(3000, reset_game, snakes)
@@ -115,67 +135,49 @@ def next_turn(snakes):
 
 def change_direction(snake, new_direction):
 
-    if new_direction == snake._direction:
+    if new_direction == snake.direction:
         return
     
     if new_direction == "up":
-        if snake._direction != "down":
-            snake._direction = new_direction
+        if snake.direction != "down":
+            snake.direction = new_direction
     elif new_direction == "right":
-        if snake._direction != "left":
-            snake._direction = new_direction
+        if snake.direction != "left":
+            snake.direction = new_direction
     elif new_direction == "down":
-        if snake._direction != "up":
-            snake._direction = new_direction
+        if snake.direction != "up":
+            snake.direction = new_direction
     elif new_direction == "left":
-        if snake._direction != "right":
-            snake._direction = new_direction
+        if snake.direction != "right":
+            snake.direction = new_direction
 
 def check_collisions(snake):
 
-    x, y = snake._coordinates[0]
+    x, y = snake.coordinates[0]
 
     if x < 0 or x >= WINDOW_WIDTH:
-        print('first true')
         return True
     elif y < 0 or y >= WINDOW_HEIGHT:
-        print('seconds true')
         return True
     
     # Check if head of current snake is somewhere inside body of snake one
-    if snake._coordinates[0] in snakes[0]._coordinates[1:]:
-        print('third true')
+    if snake.coordinates[0] in snakes[0].coordinates[1:]:
         return True
     # Check if head of current snake is somewhere inside body of snake two
-    if snake._coordinates[0] in snakes[1]._coordinates[1:]:
-        print('firforth true')
+    if snake.coordinates[0] in snakes[1].coordinates[1:]:
         return True
 
     return False
 
 def reset_game(snakes):
-
     canvas.delete("snake_body")
-
     for snake in snakes:
-        snake._coordinates = []
-        snake._circles = []
-        snake._ready = False
-        snake.crashed = False
-
-        if snake._start_y < WINDOW_HEIGHT / 2:
-            snake._direction = "down"
-        else:
-            snake._direction = "up"
-
-        snake.insert_head(snake._start_x, snake._start_y)
-
+        snake.reset_state()
     next_turn(snakes)
-
 
 def game_over(snakes):
     for snake in snakes:
-        for circle in snake._circles:
+        for circle in snake.circles:
             canvas.itemconfig(circle, fill="gray")
 
 window = Tk()
