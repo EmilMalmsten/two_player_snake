@@ -1,8 +1,8 @@
 from tkinter import *
 
-WINDOW_HEIGHT = 800
+WINDOW_HEIGHT = 600
 WINDOW_WIDTH = 800
-SPACE_SIZE = 25
+SPACE_SIZE = 20
 BACKGROUND_COLOR = "#B7B0AA"
 GAME_SPEED = 300  # Update frequency in ms
 COUNTDOWN_LENGTH = 3 # seconds
@@ -57,9 +57,11 @@ def ready(snake, tag):
     
     if all(snake.ready == True for snake in snakes):
         countdown_text = canvas.create_text(
-                350, 350, 
+                WINDOW_WIDTH / 2,
+                WINDOW_HEIGHT / 2, 
                 text="",
                 tag="countdown_text",
+                font=("TkDefaultFont", 30)
                 )
         canvas.pack()
         countdown(COUNTDOWN_LENGTH)
@@ -69,15 +71,17 @@ def next_turn(snakes):
     if snakes[0].ready == False or snakes[1].ready == False:
 
         canvas.create_text(
-                SPACE_SIZE * 5, SPACE_SIZE * 3, 
+                SPACE_SIZE * 5.5, SPACE_SIZE * 4.5, 
                 text="Player 1 - Press 'W' when ready",
                 tag="p1_ready",
+                anchor="w"
                 )
 
         canvas.create_text(
-                WINDOW_WIDTH - SPACE_SIZE * 5, WINDOW_HEIGHT - SPACE_SIZE * 3, 
+                WINDOW_WIDTH - SPACE_SIZE * 5.5, WINDOW_HEIGHT - SPACE_SIZE * 4.5, 
                 text="Player 2 - Press 'Up Arrow' when ready",
                 tag="p2_ready",
+                anchor="e"
                 )
         canvas.pack()
 
@@ -120,15 +124,16 @@ def next_turn(snakes):
             if check_collisions(snake):
                 snake.crashed = True
 
-        # both snakes crashed at the same time (tie)
         if snakes[0].crashed and snakes[1].crashed:
             game_over(snakes)
             window.after(3000, reset_game, snakes)
         elif snakes[0].crashed:
-            game_over([snakes[0]])
+            winner = snakes[1]
+            game_over([snakes[0]], winner)
             window.after(3000, reset_game, snakes)
         elif snakes[1].crashed:
-            game_over([snakes[1]])
+            winner = snakes[0]
+            game_over([snakes[1]], winner)
             window.after(3000, reset_game, snakes)
         else:
             window.after(GAME_SPEED, next_turn, snakes)
@@ -175,24 +180,48 @@ def reset_game(snakes):
         snake.reset_state()
     next_turn(snakes)
 
-def game_over(snakes):
+def game_over(snakes, winner=None):
     for snake in snakes:
         for circle in snake.circles:
             canvas.itemconfig(circle, fill="gray")
+
+    if winner:
+        print(winner._color)
 
 window = Tk()
 window.title("PvP Snake")
 
 canvas = Canvas(window, bg=BACKGROUND_COLOR, height=WINDOW_HEIGHT, width=WINDOW_WIDTH)
+canvas.pack()
+
+frame = Frame(window)
+frame.pack()
 #window.resizable(False, False)
 
-label = Label(window, text="Snake game")
-label.pack()
-
 snakes = []
-snakes.append(Snake("red", SPACE_SIZE * 4, SPACE_SIZE * 4, "down"))
-snakes.append(Snake("blue", WINDOW_HEIGHT - SPACE_SIZE * 4, WINDOW_WIDTH - SPACE_SIZE * 4, "up"))
+snakes.append(Snake("#A91814", SPACE_SIZE * 4, SPACE_SIZE * 4, "down"))
+snakes.append(Snake("#417cff", WINDOW_WIDTH - SPACE_SIZE * 5, WINDOW_HEIGHT - SPACE_SIZE * 5, "up"))
+
+text1 = Text(frame, height=10, width=30)
+text1.pack(side=LEFT)
+
+text2 = Text(frame, height=10, width=30)
+text2.pack(side=LEFT)
+
+text1.insert(END, "Player 1 Controls:\n")
+text1.insert(END, "\n")
+text1.insert(END, "W - Move up\n")
+text1.insert(END, "A - Move left\n")
+text1.insert(END, "S - Move down\n")
+text1.insert(END, "D - Move right\n")
     
+text2.insert(END, "Player 2 Controls:\n")
+text2.insert(END, "\n")
+text2.insert(END, "Up arrow - Move up\n")
+text2.insert(END, "Left arrow - Move left\n")
+text2.insert(END, "Down arrow - Move down\n")
+text2.insert(END, "Right arrow - Move right\n")
+
 next_turn(snakes)
 
 window.mainloop()
