@@ -36,6 +36,49 @@ class Snake:
                 )
         self.circles.append(circle)
 
+    def change_direction(self, new_direction):
+        if new_direction == self.direction:
+            return
+        
+        if new_direction == "up":
+            if self.direction != "down":
+                self.direction = new_direction
+        elif new_direction == "right":
+            if self.direction != "left":
+                self.direction = new_direction
+        elif new_direction == "down":
+            if self.direction != "up":
+                self.direction = new_direction
+        elif new_direction == "left":
+            if self.direction != "right":
+                self.direction = new_direction
+
+    def move(self):
+        # unpack coordinates for current head
+        x, y = self.coordinates[0]
+        
+        if self.direction == "up":
+            y -= SPACE_SIZE
+        elif self.direction == "right":
+            x += SPACE_SIZE
+        elif self.direction == "down":
+            y += SPACE_SIZE
+        elif self.direction == "left":
+            x -= SPACE_SIZE
+
+        # insert the new head
+        self.coordinates.insert(0, (x,y))
+
+        circle = canvas.create_oval(
+                x,
+                y,
+                x + SPACE_SIZE,
+                y + SPACE_SIZE,
+                fill=self._color,
+                outline="black",
+                tag="snake_body")
+        self.circles.insert(0, circle)
+
     # After each round, reset the snake for the next round
     def reset_state(self):
         self.coordinates = []
@@ -62,6 +105,9 @@ def ready(snake, tag):
     canvas.delete(tag)
     
     if all(snake.ready == True for snake in snakes):
+        # re-bind the up key to movement
+        window.bind("<w>", lambda event: snakes[0].change_direction("up"))
+        window.bind("<Up>", lambda event: snakes[1].change_direction("up"))
         countdown_text = canvas.create_text(
                 CANVAS_WIDTH / 2,
                 CANVAS_HEIGHT / 2, 
@@ -93,6 +139,7 @@ def next_turn(snakes):
                 )
         canvas.pack()
 
+        # Change the up key to act as a ready check
         window.bind("<w>", lambda event: ready(snakes[0], "p1_ready"))
         window.bind("<Up>", lambda event: ready(snakes[1], "p2_ready"))
 
@@ -100,41 +147,9 @@ def next_turn(snakes):
     else:
         # both players ready and game started
 
-        # snake one keybindings
-        window.bind("<w>", lambda event: change_direction(snakes[0], "up"))
-        window.bind("<d>", lambda event: change_direction(snakes[0], "right"))
-        window.bind("<s>", lambda event: change_direction(snakes[0], "down"))
-        window.bind("<a>", lambda event: change_direction(snakes[0], "left"))
-
-        # snake two keybindings
-        window.bind("<Up>", lambda event: change_direction(snakes[1], "up"))
-        window.bind("<Right>", lambda event: change_direction(snakes[1], "right"))
-        window.bind("<Down>", lambda event: change_direction(snakes[1], "down"))
-        window.bind("<Left>", lambda event: change_direction(snakes[1], "left"))
-
         # add new head to snake in the current direction
         for snake in snakes:
-            x, y = snake.coordinates[0]
-
-            if snake.direction == "up": 
-                y -= SPACE_SIZE
-            elif snake.direction == "right":
-                x += SPACE_SIZE
-            elif snake.direction == "down":
-                y += SPACE_SIZE
-            elif snake.direction == "left":
-                x -= SPACE_SIZE
-
-            snake.coordinates.insert(0, (x,y))
-            circle = canvas.create_oval(
-                    x,
-                    y,
-                    x + SPACE_SIZE,
-                    y + SPACE_SIZE,
-                    fill=snake._color,
-                    outline="black",
-                    tag="snake_body")
-            snake.circles.insert(0, circle)
+            snake.move()
 
             if check_collisions(snake):
                 snake.crashed = True
@@ -155,23 +170,6 @@ def next_turn(snakes):
             # recursively call itself for the next turn if there were no crashes
             window.after(GAME_SPEED, next_turn, snakes)
 
-def change_direction(snake, new_direction):
-
-    if new_direction == snake.direction:
-        return
-    
-    if new_direction == "up":
-        if snake.direction != "down":
-            snake.direction = new_direction
-    elif new_direction == "right":
-        if snake.direction != "left":
-            snake.direction = new_direction
-    elif new_direction == "down":
-        if snake.direction != "up":
-            snake.direction = new_direction
-    elif new_direction == "left":
-        if snake.direction != "right":
-            snake.direction = new_direction
 
 def check_collisions(snake):
 
@@ -263,6 +261,18 @@ snakes.append(Snake(
     "up",
     "Blue snake"
     ))
+
+# snake one keybindings
+window.bind("<w>", lambda event: snakes[0].change_direction("up"))
+window.bind("<d>", lambda event: snakes[0].change_direction("right"))
+window.bind("<s>", lambda event: snakes[0].change_direction("down"))
+window.bind("<a>", lambda event: snakes[0].change_direction("left"))
+
+# snake two keybindings
+window.bind("<Up>", lambda event: snakes[1].change_direction("up"))
+window.bind("<Right>", lambda event: snakes[1].change_direction("right"))
+window.bind("<Down>", lambda event: snakes[1].change_direction("down"))
+window.bind("<Left>", lambda event: snakes[1].change_direction("left"))
 
 next_turn(snakes)
 
