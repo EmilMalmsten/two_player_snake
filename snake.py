@@ -1,17 +1,19 @@
 from tkinter import *
 
-WINDOW_HEIGHT = 600
-WINDOW_WIDTH = 800
+# Game constants
+CANVAS_HEIGHT = 600
+CANVAS_WIDTH = 800
 SPACE_SIZE = 20
 BACKGROUND_COLOR = "#B7B0AA"
 GAME_SPEED = 300  # Update frequency in ms
 COUNTDOWN_LENGTH = 3 # seconds
 
 class Snake:
-    def __init__(self, color, start_x, start_y, direction):
+    def __init__(self, color, start_x, start_y, direction, name):
         self._start_x = start_x
         self._start_y = start_y
         self._color = color
+        self._name = name
         self._start_direction = direction
         self.direction = direction
         self.coordinates = []
@@ -20,6 +22,7 @@ class Snake:
         self.crashed = False
         self.insert_head(start_x, start_y)
 
+    # Create the first part of the snake in the starting location
     def insert_head(self, x, y):
         self.coordinates.insert(0, (x, y))
         circle = canvas.create_oval(
@@ -33,6 +36,7 @@ class Snake:
                 )
         self.circles.append(circle)
 
+    # After each round, reset the snake for the next round
     def reset_state(self):
         self.coordinates = []
         self.circles = []
@@ -41,7 +45,7 @@ class Snake:
         self.direction = self._start_direction
         self.insert_head(self._start_x, self._start_y)
 
-
+# After both players are ready, start a countdown to start the game
 def countdown(count):
     canvas.itemconfig("countdown_text", text=f"{count}")
 
@@ -51,14 +55,16 @@ def countdown(count):
         canvas.delete("countdown_text")
         next_turn(snakes)
 
+# This function gets called whenever a player presses their respective ready button before a game
 def ready(snake, tag):
     snake.ready = True
+    # delete the ready text instructions for the player that pressed ready
     canvas.delete(tag)
     
     if all(snake.ready == True for snake in snakes):
         countdown_text = canvas.create_text(
-                WINDOW_WIDTH / 2,
-                WINDOW_HEIGHT / 2, 
+                CANVAS_WIDTH / 2,
+                CANVAS_HEIGHT / 2, 
                 text="",
                 tag="countdown_text",
                 font=("TkDefaultFont", 30)
@@ -66,6 +72,8 @@ def ready(snake, tag):
         canvas.pack()
         countdown(COUNTDOWN_LENGTH)
 
+# This function will be called recursively with a set delay between each called defined by
+# the GAME_SPEED variable (as long as there are no collisions)
 def next_turn(snakes):
 
     if snakes[0].ready == False or snakes[1].ready == False:
@@ -78,7 +86,7 @@ def next_turn(snakes):
                 )
 
         canvas.create_text(
-                WINDOW_WIDTH - SPACE_SIZE * 5.5, WINDOW_HEIGHT - SPACE_SIZE * 4.5, 
+                CANVAS_WIDTH - SPACE_SIZE * 5.5, CANVAS_HEIGHT - SPACE_SIZE * 4.5, 
                 text="Player 2 - Press 'Up Arrow' when ready",
                 tag="p2_ready",
                 anchor="e"
@@ -104,7 +112,7 @@ def next_turn(snakes):
         window.bind("<Down>", lambda event: change_direction(snakes[1], "down"))
         window.bind("<Left>", lambda event: change_direction(snakes[1], "left"))
 
-        # add new head to snake in current direction
+        # add new head to snake in the current direction
         for snake in snakes:
             x, y = snake.coordinates[0]
 
@@ -118,12 +126,20 @@ def next_turn(snakes):
                 x -= SPACE_SIZE
 
             snake.coordinates.insert(0, (x,y))
-            circle = canvas.create_oval(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=snake._color, outline="black", tag="snake_body")
+            circle = canvas.create_oval(
+                    x,
+                    y,
+                    x + SPACE_SIZE,
+                    y + SPACE_SIZE,
+                    fill=snake._color,
+                    outline="black",
+                    tag="snake_body")
             snake.circles.insert(0, circle)
 
             if check_collisions(snake):
                 snake.crashed = True
 
+        # logic to see who the winner is if there were any crashes
         if snakes[0].crashed and snakes[1].crashed:
             game_over(snakes)
             window.after(3000, reset_game, snakes)
@@ -136,6 +152,7 @@ def next_turn(snakes):
             game_over([snakes[1]], winner)
             window.after(3000, reset_game, snakes)
         else:
+            # recursively call itself for the next turn if there were no crashes
             window.after(GAME_SPEED, next_turn, snakes)
 
 def change_direction(snake, new_direction):
@@ -160,9 +177,10 @@ def check_collisions(snake):
 
     x, y = snake.coordinates[0]
 
-    if x < 0 or x >= WINDOW_WIDTH:
+    # check if head is outside of the canvas
+    if x < 0 or x >= CANVAS_WIDTH:
         return True
-    elif y < 0 or y >= WINDOW_HEIGHT:
+    elif y < 0 or y >= CANVAS_HEIGHT:
         return True
     
     # Check if head of current snake is somewhere inside body of snake one
@@ -176,6 +194,7 @@ def check_collisions(snake):
 
 def reset_game(snakes):
     canvas.delete("snake_body")
+    canvas.delete("winner_text")
     for snake in snakes:
         snake.reset_state()
     next_turn(snakes)
@@ -185,22 +204,29 @@ def game_over(snakes, winner=None):
         for circle in snake.circles:
             canvas.itemconfig(circle, fill="gray")
 
+    winner_text = canvas.create_text(
+            CANVAS_WIDTH / 2,
+            CANVAS_HEIGHT / 2, 
+            text="",
+            tag="winner_text",
+            font=("TkDefaultFont", 30)
+            )
+    canvas.pack()
     if winner:
-        print(winner._color)
+        canvas.itemconfig("winner_text", text=f"{winner._name} is the winner!")
+    else:
+        canvas.itemconfig("winner_text", text="It's a tie!")
+
 
 window = Tk()
 window.title("PvP Snake")
+window.resizable(False, False)
 
-canvas = Canvas(window, bg=BACKGROUND_COLOR, height=WINDOW_HEIGHT, width=WINDOW_WIDTH)
+canvas = Canvas(window, bg=BACKGROUND_COLOR, height=CANVAS_HEIGHT, width=CANVAS_WIDTH)
 canvas.pack()
 
 frame = Frame(window)
 frame.pack()
-#window.resizable(False, False)
-
-snakes = []
-snakes.append(Snake("#A91814", SPACE_SIZE * 4, SPACE_SIZE * 4, "down"))
-snakes.append(Snake("#417cff", WINDOW_WIDTH - SPACE_SIZE * 5, WINDOW_HEIGHT - SPACE_SIZE * 5, "up"))
 
 text1 = Text(frame, height=10, width=30)
 text1.pack(side=LEFT)
@@ -221,6 +247,22 @@ text2.insert(END, "Up arrow - Move up\n")
 text2.insert(END, "Left arrow - Move left\n")
 text2.insert(END, "Down arrow - Move down\n")
 text2.insert(END, "Right arrow - Move right\n")
+
+snakes = []
+snakes.append(Snake(
+    "#A91814", #color
+    SPACE_SIZE * 4, # start x
+    SPACE_SIZE * 4, # start y
+    "down", # start direction
+    "Red snake" # name
+    ))
+snakes.append(Snake(
+    "#417cff",
+    CANVAS_WIDTH - SPACE_SIZE * 5,
+    CANVAS_HEIGHT - SPACE_SIZE * 5,
+    "up",
+    "Blue snake"
+    ))
 
 next_turn(snakes)
 
