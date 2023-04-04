@@ -3,7 +3,7 @@
 
 A 1v1 snake game where each snake keeps growing. Be the last one alive as space keeps getting more and more limited. Idea comes from one of the first online games I played as a kid on a Swedish game site called Blip.se
 
-Built in Python with Tkinter as portfolio project and learning experience for myself.
+Built in Python with Tkinter as a portfolio project and learning experience for myself.
 
 
 
