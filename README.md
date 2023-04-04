@@ -25,7 +25,7 @@ Clone the project
 Go to the project directory
 
 ```bash
-  cd my-project
+  cd two_player_snake
 ```
 
 Run the program
