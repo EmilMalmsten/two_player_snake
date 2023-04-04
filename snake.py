@@ -20,6 +20,7 @@ class Snake:
         self.circles = []
         self.ready = False
         self.crashed = False
+        self.score = 0
         self.insert_head(start_x, start_y)
 
     # Create the first part of the snake in the starting location
@@ -87,7 +88,6 @@ class Snake:
         self.crashed = False
         self.direction = self._start_direction
         self.insert_head(self._start_x, self._start_y)
-
 
 # Game functions
 def set_ready_instructions():
@@ -207,6 +207,9 @@ def game_over(snakes):
 
     if winner:
         canvas.itemconfig("winner_text", text=f"{winner._name} is the winner!")
+        winner.score += 1
+        player_one_score.config(text=f"Player 1 score: {snakes[0].score}")
+        player_two_score.config(text=f"Player 2 score: {snakes[1].score}")
     else:
         canvas.itemconfig("winner_text", text="It's a tie!")
 
@@ -220,34 +223,26 @@ def reset_game(snakes):
 window = Tk()
 window.title("PvP Snake")
 window.resizable(False, False)
+snakes = []
+
+top_frame = Frame(window)
+top_frame.pack(side=TOP, fill=BOTH, expand=True)
+
+player_one_score = Label(top_frame, text=f"Player 1 score: 0", pady=10)
+player_one_score.pack(side=LEFT, fill=BOTH, expand=True)
+
+player_two_score = Label(top_frame, text=f"Player 2 score: 0", pady=10)
+player_two_score.pack(side=LEFT, fill=BOTH, expand=True)
 
 canvas = Canvas(window, bg=BACKGROUND_COLOR, height=CANVAS_HEIGHT, width=CANVAS_WIDTH)
 canvas.pack()
 
-frame = Frame(window)
-frame.pack()
+player_one_controls = Label(window, text="Player 1 - Use WASD keys to move", pady=10)
+player_one_controls.pack(side=LEFT, fill=BOTH, expand=True)
 
-text1 = Text(frame, height=10, width=30)
-text1.pack(side=LEFT)
+player_two_controls = Label(window, text="Player 2 - Use arrow keys to move", pady=10)
+player_two_controls.pack(side=LEFT, fill=BOTH, expand=True)
 
-text2 = Text(frame, height=10, width=30)
-text2.pack(side=LEFT)
-
-text1.insert(END, "Player 1 Controls:\n")
-text1.insert(END, "\n")
-text1.insert(END, "W - Move up\n")
-text1.insert(END, "A - Move left\n")
-text1.insert(END, "S - Move down\n")
-text1.insert(END, "D - Move right\n")
-    
-text2.insert(END, "Player 2 Controls:\n")
-text2.insert(END, "\n")
-text2.insert(END, "Up arrow - Move up\n")
-text2.insert(END, "Left arrow - Move left\n")
-text2.insert(END, "Down arrow - Move down\n")
-text2.insert(END, "Right arrow - Move right\n")
-
-snakes = []
 snakes.append(Snake(
     "#A91814", #color
     SPACE_SIZE * 4, # start x
