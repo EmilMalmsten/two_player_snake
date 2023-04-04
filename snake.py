@@ -88,26 +88,35 @@ class Snake:
         self.direction = self._start_direction
         self.insert_head(self._start_x, self._start_y)
 
-# After both players are ready, start a countdown to start the game
-def countdown(count):
-    canvas.itemconfig("countdown_text", text=f"{count}")
 
-    if count > 0:
-        window.after(1000, countdown, count-1)
-    else:
-        canvas.delete("countdown_text")
-        next_turn(snakes)
+# Game functions
+def set_ready_instructions():
+    window.bind("<w>", lambda event: ready(snakes[0], "p1_ready"))
+    window.bind("<Up>", lambda event: ready(snakes[1], "p2_ready"))
+    canvas.create_text(
+            SPACE_SIZE * 5.5, SPACE_SIZE * 4.5, 
+            text="Player 1 - Press 'W' when ready",
+            tag="p1_ready",
+            anchor="w"
+            )
+
+    canvas.create_text(
+            CANVAS_WIDTH - SPACE_SIZE * 5.5, CANVAS_HEIGHT - SPACE_SIZE * 4.5, 
+            text="Player 2 - Press 'Up Arrow' when ready",
+            tag="p2_ready",
+            anchor="e"
+            )
+    canvas.pack()
 
 # This function gets called whenever a player presses their respective ready button before a game
-def ready(snake, tag):
+def ready(snake, ready_text_tag):
     snake.ready = True
     # delete the ready text instructions for the player that pressed ready
-    canvas.delete(tag)
-    
+    canvas.delete(ready_text_tag)
+    ready_check()
+
+def ready_check():
     if all(snake.ready == True for snake in snakes):
-        # re-bind the up key to movement
-        window.bind("<w>", lambda event: snakes[0].change_direction("up"))
-        window.bind("<Up>", lambda event: snakes[1].change_direction("up"))
         countdown_text = canvas.create_text(
                 CANVAS_WIDTH / 2,
                 CANVAS_HEIGHT / 2, 
@@ -118,61 +127,48 @@ def ready(snake, tag):
         canvas.pack()
         countdown(COUNTDOWN_LENGTH)
 
-# This function will be called recursively with a set delay between each called defined by
+# After both players are ready, start a countdown to game start
+def countdown(count):
+    canvas.itemconfig("countdown_text", text=f"{count}")
+
+    if count > 0:
+        window.after(1000, countdown, count-1)
+    else:
+        canvas.delete("countdown_text")
+        set_movement_controls()
+        next_turn(snakes)
+
+def set_movement_controls():
+    # snake one keybindings
+    window.bind("<w>", lambda event: snakes[0].change_direction("up"))
+    window.bind("<d>", lambda event: snakes[0].change_direction("right"))
+    window.bind("<s>", lambda event: snakes[0].change_direction("down"))
+    window.bind("<a>", lambda event: snakes[0].change_direction("left"))
+
+    # snake two keybindings
+    window.bind("<Up>", lambda event: snakes[1].change_direction("up"))
+    window.bind("<Right>", lambda event: snakes[1].change_direction("right"))
+    window.bind("<Down>", lambda event: snakes[1].change_direction("down"))
+    window.bind("<Left>", lambda event: snakes[1].change_direction("left"))
+
+# next_turn will be called recursively with a set delay between each called defined by
 # the GAME_SPEED variable (as long as there are no collisions)
 def next_turn(snakes):
+    # add new head to snake in the current direction
+    for snake in snakes:
+        snake.move()
 
-    if snakes[0].ready == False or snakes[1].ready == False:
+        if check_collisions(snake):
+            snake.crashed = True
 
-        canvas.create_text(
-                SPACE_SIZE * 5.5, SPACE_SIZE * 4.5, 
-                text="Player 1 - Press 'W' when ready",
-                tag="p1_ready",
-                anchor="w"
-                )
-
-        canvas.create_text(
-                CANVAS_WIDTH - SPACE_SIZE * 5.5, CANVAS_HEIGHT - SPACE_SIZE * 4.5, 
-                text="Player 2 - Press 'Up Arrow' when ready",
-                tag="p2_ready",
-                anchor="e"
-                )
-        canvas.pack()
-
-        # Change the up key to act as a ready check
-        window.bind("<w>", lambda event: ready(snakes[0], "p1_ready"))
-        window.bind("<Up>", lambda event: ready(snakes[1], "p2_ready"))
-
+    if any(snake.crashed == True for snake in snakes):
+        game_over(snakes)
+        window.after(3000, reset_game, snakes)
 
     else:
-        # both players ready and game started
-
-        # add new head to snake in the current direction
-        for snake in snakes:
-            snake.move()
-
-            if check_collisions(snake):
-                snake.crashed = True
-
-        # logic to see who the winner is if there were any crashes
-        if snakes[0].crashed and snakes[1].crashed:
-            game_over(snakes)
-            window.after(3000, reset_game, snakes)
-        elif snakes[0].crashed:
-            winner = snakes[1]
-            game_over([snakes[0]], winner)
-            window.after(3000, reset_game, snakes)
-        elif snakes[1].crashed:
-            winner = snakes[0]
-            game_over([snakes[1]], winner)
-            window.after(3000, reset_game, snakes)
-        else:
-            # recursively call itself for the next turn if there were no crashes
-            window.after(GAME_SPEED, next_turn, snakes)
-
+        window.after(GAME_SPEED, next_turn, snakes)
 
 def check_collisions(snake):
-
     x, y = snake.coordinates[0]
 
     # check if head is outside of the canvas
@@ -190,17 +186,15 @@ def check_collisions(snake):
 
     return False
 
-def reset_game(snakes):
-    canvas.delete("snake_body")
-    canvas.delete("winner_text")
-    for snake in snakes:
-        snake.reset_state()
-    next_turn(snakes)
+def game_over(snakes):
+    winner = None
 
-def game_over(snakes, winner=None):
     for snake in snakes:
-        for circle in snake.circles:
-            canvas.itemconfig(circle, fill="gray")
+        if snake.crashed:
+            for circle in snake.circles:
+                canvas.itemconfig(circle, fill="gray")
+        else:
+            winner = snake
 
     winner_text = canvas.create_text(
             CANVAS_WIDTH / 2,
@@ -210,11 +204,18 @@ def game_over(snakes, winner=None):
             font=("TkDefaultFont", 30)
             )
     canvas.pack()
+
     if winner:
         canvas.itemconfig("winner_text", text=f"{winner._name} is the winner!")
     else:
         canvas.itemconfig("winner_text", text="It's a tie!")
 
+def reset_game(snakes):
+    canvas.delete("snake_body")
+    canvas.delete("winner_text")
+    for snake in snakes:
+        snake.reset_state()
+    set_ready_instructions()
 
 window = Tk()
 window.title("PvP Snake")
@@ -262,19 +263,6 @@ snakes.append(Snake(
     "Blue snake"
     ))
 
-# snake one keybindings
-window.bind("<w>", lambda event: snakes[0].change_direction("up"))
-window.bind("<d>", lambda event: snakes[0].change_direction("right"))
-window.bind("<s>", lambda event: snakes[0].change_direction("down"))
-window.bind("<a>", lambda event: snakes[0].change_direction("left"))
-
-# snake two keybindings
-window.bind("<Up>", lambda event: snakes[1].change_direction("up"))
-window.bind("<Right>", lambda event: snakes[1].change_direction("right"))
-window.bind("<Down>", lambda event: snakes[1].change_direction("down"))
-window.bind("<Left>", lambda event: snakes[1].change_direction("left"))
-
-next_turn(snakes)
-
+set_ready_instructions()
 window.mainloop()
 
